@@ -1,0 +1,49 @@
+import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+
+const UserDropdown = ({ greeting }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { user, logout } = useAuth();
+
+  const toggleDropdown = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={toggleDropdown}
+        className="flex items-center space-x-2 text-gray-700 hover:text-gray-900"
+      >
+        {/* Aquí irá la imagen del usuario */}
+        <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
+        <span>{greeting} {user?.username}!</span>
+      </button>
+
+      {/* Menú desplegable */}
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+          <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            Mi Perfil
+          </button>
+          <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+            Historial de Compras
+          </button>
+          <button
+            onClick={handleLogout}
+            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            Desconectar
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default UserDropdown;
