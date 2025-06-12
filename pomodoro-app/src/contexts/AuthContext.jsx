@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import AuthService from '../services/authService';
+import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
 
@@ -14,37 +15,65 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [accessToken, setAccessToken] = useState(localStorage.getItem('access_token'));
+  const [refreshToken, setRefreshToken] = useState(localStorage.getItem('refresh_token'));
 
-  // Verificar si hay un usuario logeado al cargar la app
+  // Verificar autenticación al cargar
   useEffect(() => {
     const checkAuth = async () => {
-      if (token) {
-        // Extraer el ID del token simulado
-        const userId = token.split('-').pop();
-        const result = await AuthService.getCurrentUser(userId);
+      if (accessToken) {
+        const result = await AuthService.verifyToken(accessToken);
         
         if (result.success) {
-          setUser(result.user);
+          setUser(result.data.user);
         } else {
-          // Token inválido, limpiar
-          localStorage.removeItem('token');
-          setToken(null);
+          // Token inválido, intentar refrescar
+          if (refreshToken) {
+            const refreshResult = await AuthService.refreshToken(refreshToken);
+            if (refreshResult.success) {
+              setAccessToken(refreshResult.data.access_token);
+              localStorage.setItem('access_token', refreshResult.data.access_token);
+              
+              // Verificar nuevo token
+              const verifyResult = await AuthService.verifyToken(refreshResult.data.access_token);
+              if (verifyResult.success) {
+                setUser(verifyResult.data.user);
+              }
+            } else {
+              // No se pudo refrescar, limpiar todo
+              clearAuth();
+            }
+          } else {
+            clearAuth();
+          }
         }
       }
       setLoading(false);
     };
 
     checkAuth();
-  }, [token]);
+  }, []);
+
+  const clearAuth = () => {
+    setUser(null);
+    setAccessToken(null);
+    setRefreshToken(null);
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  };
 
   const login = async (username, password) => {
     const result = await AuthService.login(username, password);
     
     if (result.success) {
-      setUser(result.user);
-      setToken(result.token);
-      localStorage.setItem('token', result.token);
+      const { user, access_token, refresh_token } = result.data;
+      
+      setUser(user);
+      setAccessToken(access_token);
+      setRefreshToken(refresh_token);
+      
+      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('refresh_token', refresh_token);
     }
     
     return result;
@@ -52,13 +81,18 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     const result = await AuthService.register(userData);
+    
+    if (result.success) {
+      toast.success(result.data.message);
+    }
+    
     return result;
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('token');
+  const logout = async () => {
+    await AuthService.logout(refreshToken);
+    clearAuth();
+    toast.success('Sesión cerrada');
   };
 
   const updateUserCoins = (freeCoins, paidCoins) => {
@@ -71,6 +105,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Función para hacer peticiones autenticadas (similar a axios con interceptor)
+  const authenticatedRequest = async (requestFunction) => {
+    try {
+      const result = await requestFunction(accessToken);
+      return result;
+    } catch (error) {
+      // Si el error es de autenticación, intentar refrescar token
+      if (error.code === 'TOKEN_ERROR' && refreshToken) {
+        const refreshResult = await AuthService.refreshToken(refreshToken);
+        if (refreshResult.success) {
+          setAccessToken(refreshResult.data.access_token);
+          localStorage.setItem('access_token', refreshResult.data.access_token);
+          
+          // Reintentar la petición original
+          return await requestFunction(refreshResult.data.access_token);
+        }
+      }
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -78,7 +133,9 @@ export const AuthProvider = ({ children }) => {
       logout, 
       register, 
       loading,
-      updateUserCoins 
+      updateUserCoins,
+      isAuthenticated: !!user,
+      authenticatedRequest
     }}>
       {children}
     </AuthContext.Provider>

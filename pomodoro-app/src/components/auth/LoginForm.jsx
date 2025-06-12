@@ -39,13 +39,13 @@ const LoginForm = ({ onClose, onSwitchToRegister }) => {
     setLoading(false);
   };
 
-  // Para desarrollo: función para auto-completar con usuario demo
-  const fillDemoUser = () => {
-    setFormData({
-      username: 'usuario_demo',
-      password: 'demo123'
-    });
-  };
+// Para desarrollo: función para auto-completar con usuario demo
+const fillDemoUser = () => {
+  setFormData({
+    username: 'usuario_demo',
+    password: 'demo123' // Contraseña real que debe coincidir con el hash
+  });
+};
 
   return (
     <div className="p-6 w-96">

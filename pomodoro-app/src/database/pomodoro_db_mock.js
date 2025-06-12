@@ -28,7 +28,7 @@ const mockDatabase = {
       user_id: 1,
       username: 'usuario_demo',
       email: 'demo@ejemplo.com',
-      password_hash: '$2b$10$hashedpassword123',
+      password_hash: '$2b$10$' + btoa('demo123'), // Contraseña: demo123
       telefono: '+56912345678',
       imagen_perfil: 'https://example.com/avatar1.jpg',
       provider: 'email',
@@ -47,7 +47,7 @@ const mockDatabase = {
       user_id: 2,
       username: 'premium_user',
       email: 'premium@ejemplo.com',
-      password_hash: '$2b$10$hashedpassword456',
+      password_hash: '$2b$10$' + btoa('premium123'), // Contraseña: premium123
       telefono: null,
       imagen_perfil: null,
       provider: 'google',
