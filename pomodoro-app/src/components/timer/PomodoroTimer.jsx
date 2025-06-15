@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSound } from '../../hooks/useSound';
+import TransactionService from '../../services/transactionService';
+import { MockDatabase } from '../../database/pomodoro_db_mock';
 import toast from 'react-hot-toast';
 
 // Constantes para los modos
@@ -25,7 +27,7 @@ const MODE_COLORS = {
 };
 
 const PomodoroTimer = () => {
-  const { user } = useAuth();
+  const { user, updateUserCoins } = useAuth();
   const { playPomodoroComplete, playShortBreakComplete, playLongBreakComplete, playClickSound } = useSound();
   
   // Inicializar customTimes primero
@@ -38,11 +40,12 @@ const PomodoroTimer = () => {
   const [mode, setMode] = useState(TIMER_MODES.POMODORO);
   const [timeLeft, setTimeLeft] = useState(customTimes[TIMER_MODES.POMODORO] * 60);
   const [isRunning, setIsRunning] = useState(false);
-  const [pomodoroCount, setPomodoroCount] = useState(0);
+  const [pomodoroCount, setPomodoroCount] = useState(1);
   const [cycleCount, setCycleCount] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   
   const intervalRef = useRef(null);
+  const hasCompletedRef = useRef(false);
 
   // Guardar estado en localStorage
   useEffect(() => {
@@ -64,7 +67,7 @@ const PomodoroTimer = () => {
       const state = JSON.parse(savedState);
       setMode(state.mode);
       setTimeLeft(state.timeLeft);
-      setPomodoroCount(state.pomodoroCount);
+      setPomodoroCount(state.pomodoroCount || 1);
       setCycleCount(state.cycleCount || 0);
       if (state.customTimes) {
         setCustomTimes(state.customTimes);
@@ -91,12 +94,42 @@ const PomodoroTimer = () => {
   }, []);
 
   // Función para completar un timer
-  const completeTimer = useCallback(() => {
+  const completeTimer = useCallback(async () => {
+    if (hasCompletedRef.current) return; // Prevenir ejecución doble
+    hasCompletedRef.current = true; // Marcar como completado
+    
     if (mode === TIMER_MODES.POMODORO) {
       // Reproducir sonido de pomodoro completado
       playPomodoroComplete();
       
       const newCount = pomodoroCount + 1;
+      
+      // Calcular y agregar Freemodoros (1 por cada minuto del Pomodoro)
+      const freemodoresToAdd = customTimes[TIMER_MODES.POMODORO];
+      
+      // Actualizar monedas si hay usuario logueado
+      if (user) {
+        // Crear transacción en la base de datos
+        const transactionResult = await TransactionService.createPomodoroTransaction(
+          user.user_id,
+          freemodoresToAdd,
+          customTimes[TIMER_MODES.POMODORO]
+        );
+        
+        if (transactionResult.success) {
+          // Actualizar el contexto con las nuevas monedas
+          updateUserCoins(
+            transactionResult.data.newBalance.free_coins,
+            transactionResult.data.newBalance.paid_coins
+          );
+          
+          // Notificar al usuario sobre las monedas ganadas
+          toast.success(`¡+${freemodoresToAdd} Freemodoros ganados! 🪙`, {
+            duration: 4000,
+            icon: '💰',
+          });
+        }
+      }
       
       // Guardar en historial (si hay usuario logueado)
       if (user) {
@@ -104,16 +137,28 @@ const PomodoroTimer = () => {
         history.push({
           completedAt: new Date().toISOString(),
           duration: customTimes[TIMER_MODES.POMODORO],
+          type: 'pomodoro',
           cycleNumber: cycleCount + 1,
-          pomodoroInCycle: newCount
+          pomodoroInCycle: newCount,
+          freemodoroCredited: freemodoresToAdd
         });
         localStorage.setItem(`pomodoroHistory_${user.user_id}`, JSON.stringify(history));
+        
+        // Actualizar lifetime_session
+        try {
+          await MockDatabase.updateLifetimeSession(user.user_id, customTimes[TIMER_MODES.POMODORO]);
+          const currentLifetime = user.lifetime_session || 0;
+          const newLifetime = currentLifetime + customTimes[TIMER_MODES.POMODORO];
+          localStorage.setItem(`lifetime_${user.user_id}`, newLifetime.toString());
+        } catch (error) {
+          console.error('Error actualizando lifetime_session:', error);
+        }
       }
       
       // Verificar si completamos un ciclo
-      if (newCount === 4) {
-        // Ciclo completo! Resetear contador y aumentar ciclos
-        setPomodoroCount(0);
+      if (newCount > 4) {
+        // Ciclo completo! Resetear contador a 1 y aumentar ciclos
+        setPomodoroCount(1);
         setCycleCount(prev => prev + 1);
         
         // Ir a descanso largo
@@ -133,6 +178,19 @@ const PomodoroTimer = () => {
       // Reproducir sonido de descanso corto completado
       playShortBreakComplete();
       
+      // Guardar descanso corto en historial
+      if (user) {
+        const history = JSON.parse(localStorage.getItem(`pomodoroHistory_${user.user_id}`) || '[]');
+        history.push({
+          completedAt: new Date().toISOString(),
+          duration: customTimes[TIMER_MODES.SHORT_BREAK],
+          type: 'short_break',
+          cycleNumber: cycleCount + 1,
+          pomodoroInCycle: pomodoroCount
+        });
+        localStorage.setItem(`pomodoroHistory_${user.user_id}`, JSON.stringify(history));
+      }
+      
       // Después de un descanso corto, volver a pomodoro
       setMode(TIMER_MODES.POMODORO);
       setTimeLeft(customTimes[TIMER_MODES.POMODORO] * 60);
@@ -141,6 +199,19 @@ const PomodoroTimer = () => {
     } else {
       // Reproducir sonido de descanso largo completado
       playLongBreakComplete();
+      
+      // Guardar descanso largo en historial
+      if (user) {
+        const history = JSON.parse(localStorage.getItem(`pomodoroHistory_${user.user_id}`) || '[]');
+        history.push({
+          completedAt: new Date().toISOString(),
+          duration: customTimes[TIMER_MODES.LONG_BREAK],
+          type: 'long_break',
+          cycleNumber: cycleCount,
+          pomodoroInCycle: 0
+        });
+        localStorage.setItem(`pomodoroHistory_${user.user_id}`, JSON.stringify(history));
+      }
       
       // Después de un descanso largo, volver a pomodoro
       setMode(TIMER_MODES.POMODORO);
@@ -151,50 +222,94 @@ const PomodoroTimer = () => {
     
     // Continuar automáticamente
     setIsRunning(true);
-  }, [mode, pomodoroCount, cycleCount, customTimes, playPomodoroComplete, playShortBreakComplete, playLongBreakComplete, showNotification, user]);
+  }, [mode, pomodoroCount, cycleCount, customTimes, playPomodoroComplete, playShortBreakComplete, playLongBreakComplete, showNotification, user, updateUserCoins]);
 
-  // Timer principal
-  useEffect(() => {
-    if (isRunning && timeLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            setIsRunning(false);
-            completeTimer();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+// Timer principal
+    useEffect(() => {
+      if (isRunning) {
+        intervalRef.current = setTimeout(() => {
+          setTimeLeft(prev => {
+            const newTime = prev - 1;
+            
+            if (newTime <= 0) {
+              // Llamar a completeTimer cuando el tiempo llega a 0
+              completeTimer().catch(console.error);
+              return 0;
+            }
+            return newTime;
+          });
+        }, 1000);
       }
-    }
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isRunning, timeLeft, completeTimer]);
+  return () => {
+    clearTimeout(intervalRef.current);
+  };
+}, [isRunning, timeLeft, completeTimer]);
 
   // Funciones de control
   const toggleTimer = () => {
     playClickSound();
     setIsRunning(!isRunning);
+    clearTimeout(intervalRef.current); // Añade esto
   };
 
   const resetTimer = () => {
     playClickSound();
-    setIsRunning(false);
+    
+    // Advertir si se van a perder Freemodoros
+    if (mode === TIMER_MODES.POMODORO && user && timeLeft < customTimes[TIMER_MODES.POMODORO] * 60) {
+      const minutesLeft = Math.ceil(timeLeft / 60);
+      if (minutesLeft < customTimes[TIMER_MODES.POMODORO]) {
+        toast(`Perderás el progreso actual del Pomodoro`, {
+          icon: '⚠️',
+          duration: 2000,
+        });
+      }
+    }
+    
     setTimeLeft(customTimes[mode] * 60);
+    clearTimeout(intervalRef.current); // Añade esto
+    setIsRunning(true); // Iniciar automáticamente
+    hasCompletedRef.current = false;
   };
 
   const skipTimer = () => {
     playClickSound();
-    setIsRunning(false);
-    completeTimer();
+    
+    // Advertir si se van a perder Freemodoros
+    if (mode === TIMER_MODES.POMODORO && user && timeLeft < customTimes[TIMER_MODES.POMODORO] * 60) {
+      const minutesLeft = Math.ceil(timeLeft / 60);
+      if (minutesLeft < customTimes[TIMER_MODES.POMODORO]) {
+        toast(`Perderás ${customTimes[TIMER_MODES.POMODORO]} Freemodoros si saltas`, {
+          icon: '⚠️',
+          duration: 3000,
+        });
+      }
+    }
+    
+    // Al saltar, cambiar de modo sin dar recompensas
+    if (mode === TIMER_MODES.POMODORO) {
+      const newCount = pomodoroCount + 1;
+      
+      if (newCount > 4) {
+        setPomodoroCount(1);
+        setCycleCount(prev => prev + 1);
+        setMode(TIMER_MODES.LONG_BREAK);
+        setTimeLeft(customTimes[TIMER_MODES.LONG_BREAK] * 60);
+      } else {
+        setPomodoroCount(newCount);
+        setMode(TIMER_MODES.SHORT_BREAK);
+        setTimeLeft(customTimes[TIMER_MODES.SHORT_BREAK] * 60);
+      }
+    } else {
+      // Después de un descanso, volver a pomodoro
+      setMode(TIMER_MODES.POMODORO);
+      setTimeLeft(customTimes[TIMER_MODES.POMODORO] * 60);
+    }
+    
+    clearTimeout(intervalRef.current); // Añade esto
+    setIsRunning(true); // Iniciar automáticamente
+    hasCompletedRef.current = false;
   };
 
   const changeMode = (newMode) => {
@@ -202,6 +317,7 @@ const PomodoroTimer = () => {
     setIsRunning(false);
     setMode(newMode);
     setTimeLeft(customTimes[newMode] * 60);
+    hasCompletedRef.current = false;
   };
 
   // Actualizar tiempos personalizados
@@ -308,6 +424,12 @@ const PomodoroTimer = () => {
           <div className="text-sm text-gray-600 mt-2">
             {pomodoroCount}/4 Pomodoros
           </div>
+          {/* Mostrar potencial de Freemodoros solo si es un Pomodoro y hay usuario */}
+          {mode === TIMER_MODES.POMODORO && user && (
+            <div className="text-xs text-gray-500 mt-1">
+              +{customTimes[TIMER_MODES.POMODORO]} Freemodoros al completar
+            </div>
+          )}
         </div>
       </div>
 

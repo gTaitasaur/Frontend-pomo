@@ -22,6 +22,7 @@ let premiumPackageIdCounter = 4;
 
 // TABLAS DE DATOS
 const mockDatabase = {
+  
   // USUARIOS
   usuarios: [
     {
@@ -739,6 +740,19 @@ class MockDatabase {
       }, 150);
     });
   }
+
+    // Actualizar lifetime_session del usuario
+    static async updateLifetimeSession(userId, minutes) {
+      const userIndex = mockData.usuarios.findIndex(u => u.user_id === userId);
+      if (userIndex === -1) {
+        throw new Error('Usuario no encontrado');
+      }
+      
+      const currentLifetime = mockData.usuarios[userIndex].lifetime_session || 0;
+      mockData.usuarios[userIndex].lifetime_session = currentLifetime + minutes;
+      
+      return mockData.usuarios[userIndex];
+    }
 
   // TRANSACCIONES
   static async getTransactions(limit = 50, offset = 0) {

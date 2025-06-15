@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 import UserDropdown from './UserDropdown';
 import Modal from '../ui/Modal';
 import LoginForm from '../auth/LoginForm';
 import RegisterForm from '../auth/RegisterForm';
+import CoinDisplay from '../ui/CoinDisplay';
 
 const Navbar = () => {
   const { user } = useAuth();
@@ -41,13 +43,18 @@ const Navbar = () => {
           <div className="flex justify-between items-center h-16">
             {/* Lado izquierdo */}
             <div className="flex items-center space-x-8">
-              <h1 className="text-xl font-bold text-gray-800">Pomosaur</h1>
+              <Link 
+                to="/" 
+                className="text-xl font-bold text-gray-800 hover:text-gray-600 transition-colors"
+              >
+                Pomosaur
+              </Link>
               
               {/* Mostrar monedas si hay usuario logeado */}
               {user && (
-                <div className="flex items-center space-x-4 text-sm">
-                  <span>Freemodoro: {user.free_coins}</span>
-                  <span>Pomocoin: {user.paid_coins}</span>
+                <div className="flex items-center space-x-6">
+                  <CoinDisplay amount={user.free_coins} type="free" />
+                  <CoinDisplay amount={user.paid_coins} type="paid" />
                 </div>
               )}
             </div>

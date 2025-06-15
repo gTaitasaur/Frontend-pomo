@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const UserDropdown = ({ greeting }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
@@ -11,6 +13,16 @@ const UserDropdown = ({ greeting }) => {
 
   const handleLogout = () => {
     logout();
+    setIsOpen(false);
+  };
+
+  const handleProfileClick = () => {
+    navigate('/profile');
+    setIsOpen(false);
+  };
+
+  const handleHistoryClick = () => {
+    navigate('/history');
     setIsOpen(false);
   };
 
@@ -28,10 +40,16 @@ const UserDropdown = ({ greeting }) => {
       {/* Menú desplegable */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
-          <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+          <button 
+            onClick={handleProfileClick}
+            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          >
             Mi Perfil
           </button>
-          <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+          <button 
+            onClick={handleHistoryClick}
+            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          >
             Historial de Pomos
           </button>
           <button

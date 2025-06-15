@@ -179,6 +179,48 @@ class AuthService {
     }
   }
 
+  // Cambiar contraseña
+  static async changePassword(userId, currentPassword, newPassword) {
+    try {
+      // Simular delay de red
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Buscar usuario
+      const user = await MockDatabase.getUserById(userId);
+      if (!user) {
+        throw new Error('Usuario no encontrado');
+      }
+
+      // Verificar contraseña actual
+      const isValidPassword = verifyPassword(currentPassword, user.password_hash);
+      if (!isValidPassword) {
+        throw new Error('La contraseña actual es incorrecta');
+      }
+
+      // Actualizar contraseña
+      const newPasswordHash = hashPassword(newPassword);
+      await MockDatabase.updateUser(userId, {
+        password_hash: newPasswordHash,
+        updated_at: new Date()
+      });
+
+      return {
+        success: true,
+        data: {
+          message: 'Contraseña actualizada exitosamente'
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error.message,
+          code: 'PASSWORD_CHANGE_ERROR'
+        }
+      };
+    }
+  }
+
   // Verificar token y obtener usuario actual
   static async verifyToken(token) {
     try {
