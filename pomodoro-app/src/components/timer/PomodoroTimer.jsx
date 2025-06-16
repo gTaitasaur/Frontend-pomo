@@ -40,12 +40,17 @@ const PomodoroTimer = () => {
   const [mode, setMode] = useState(TIMER_MODES.POMODORO);
   const [timeLeft, setTimeLeft] = useState(customTimes[TIMER_MODES.POMODORO] * 60);
   const [isRunning, setIsRunning] = useState(false);
-  const [pomodoroCount, setPomodoroCount] = useState(1);
+  const [pomodoroCount, setPomodoroCount] = useState(0); // Comienza en 0/4
   const [cycleCount, setCycleCount] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   
   const intervalRef = useRef(null);
   const hasCompletedRef = useRef(false);
+
+  // Resetear flag de completado al cambiar modo o contador
+  useEffect(() => {
+    hasCompletedRef.current = false;
+  }, [mode, pomodoroCount]);
 
   // Guardar estado en localStorage
   useEffect(() => {
@@ -67,7 +72,7 @@ const PomodoroTimer = () => {
       const state = JSON.parse(savedState);
       setMode(state.mode);
       setTimeLeft(state.timeLeft);
-      setPomodoroCount(state.pomodoroCount || 1);
+      setPomodoroCount(state.pomodoroCount || 0); // Iniciar en 0 si no existe
       setCycleCount(state.cycleCount || 0);
       if (state.customTimes) {
         setCustomTimes(state.customTimes);
@@ -150,9 +155,9 @@ const PomodoroTimer = () => {
         }
       }
       
-      // Verificar ciclo completo
-      if (newCount > 4) {
-        setPomodoroCount(1);
+      // Verificar ciclo completo (después de 4 pomodoros)
+      if (newCount >= 4) {
+        setPomodoroCount(0); // Resetear contador
         setCycleCount(prev => prev + 1);
         
         // Descanso largo
@@ -188,7 +193,7 @@ const PomodoroTimer = () => {
       setTimeLeft(customTimes[TIMER_MODES.POMODORO] * 60);
       showNotification('¡Descanso terminado!', 'Tiempo de volver al trabajo');
       toast('¡A trabajar! 💪', { icon: '🍅' });
-    } else {
+    } else { // LONG_BREAK
       playLongBreakComplete();
       
       // Guardar descanso largo en historial
@@ -215,27 +220,23 @@ const PomodoroTimer = () => {
     setIsRunning(true);
   }, [mode, pomodoroCount, cycleCount, customTimes, playPomodoroComplete, playShortBreakComplete, playLongBreakComplete, showNotification, user, updateUserCoins]);
 
-// Timer principal
-    useEffect(() => {
-      if (isRunning) {
-        intervalRef.current = setTimeout(() => {
-          setTimeLeft(prev => {
-            const newTime = prev - 1;
-            
-            if (newTime <= 0) {
-              // Llamar a completeTimer cuando el tiempo llega a 0
-              completeTimer().catch(console.error);
-              return 0;
-            }
-            return newTime;
-          });
-        }, 1000);
+  // Timer principal - CORECCIÓN CLAVE
+  useEffect(() => {
+    if (isRunning) {
+      if (timeLeft === 0) {
+        if (!hasCompletedRef.current) {
+          completeTimer().catch(console.error);
+        }
+        return;
       }
 
-  return () => {
-    clearTimeout(intervalRef.current);
-  };
-}, [isRunning, timeLeft, completeTimer]);
+      intervalRef.current = setTimeout(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    }
+
+    return () => clearTimeout(intervalRef.current);
+  }, [isRunning, timeLeft, completeTimer]);
 
   // Funciones de control
   const toggleTimer = () => {
@@ -245,18 +246,7 @@ const PomodoroTimer = () => {
   };
 
   const resetTimer = () => {
-    playClickSound();
-    
-    if (mode === TIMER_MODES.POMODORO && user && timeLeft < customTimes[TIMER_MODES.POMODORO] * 60) {
-      const minutesLeft = Math.ceil(timeLeft / 60);
-      if (minutesLeft < customTimes[TIMER_MODES.POMODORO]) {
-        toast(`Perderás el progreso actual del Pomodoro`, {
-          icon: '⚠️',
-          duration: 2000,
-        });
-      }
-    }
-    
+    playClickSound(); 
     setTimeLeft(customTimes[mode] * 60);
     clearTimeout(intervalRef.current);
     setIsRunning(true);
@@ -265,17 +255,6 @@ const PomodoroTimer = () => {
 
   const skipTimer = () => {
     playClickSound();
-    
-    if (mode === TIMER_MODES.POMODORO && user && timeLeft < customTimes[TIMER_MODES.POMODORO] * 60) {
-      const minutesLeft = Math.ceil(timeLeft / 60);
-      if (minutesLeft < customTimes[TIMER_MODES.POMODORO]) {
-        toast(`Perderás ${customTimes[TIMER_MODES.POMODORO]} Freemodoros si saltas`, {
-          icon: '⚠️',
-          duration: 3000,
-        });
-      }
-    }
-    
     // Al saltar, cambiar de modo sin dar recompensas
     if (mode === TIMER_MODES.POMODORO) {
       const newCount = pomodoroCount + 1;
