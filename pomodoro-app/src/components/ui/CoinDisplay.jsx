@@ -7,10 +7,8 @@ const CoinDisplay = ({ amount, type = 'free' }) => {
 
   useEffect(() => {
     if (amount > displayAmount) {
-      // Las monedas aumentaron - mostrar animación
       setIsAnimating(true);
       
-      // Crear partículas de +N
       const diff = amount - displayAmount;
       const newParticle = {
         id: Date.now(),
@@ -18,12 +16,10 @@ const CoinDisplay = ({ amount, type = 'free' }) => {
       };
       setParticles(prev => [...prev, newParticle]);
       
-      // Remover partícula después de la animación
       setTimeout(() => {
         setParticles(prev => prev.filter(p => p.id !== newParticle.id));
       }, 1000);
       
-      // Detener animación después de un tiempo
       setTimeout(() => {
         setIsAnimating(false);
       }, 500);

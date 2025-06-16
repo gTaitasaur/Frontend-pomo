@@ -23,8 +23,6 @@ body {
   transition: stroke-dasharray 0.3s ease;
 }
 
-/* Agregar al final de tu archivo src/App.css */
-
 /* Animación para cuando se ganan monedas */
 @keyframes coinBounce {
   0% {

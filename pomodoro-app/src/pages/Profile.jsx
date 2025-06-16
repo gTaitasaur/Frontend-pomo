@@ -15,7 +15,7 @@ const Profile = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  // Redirigir si no hay usuario
+  // Redirige si no hay usuario
   useEffect(() => {
     if (!user) {
       navigate('/');
@@ -52,7 +52,7 @@ const Profile = () => {
     setLoading(true);
     
     try {
-      // Cambiar contraseña usando el servicio
+      // Cambia contraseña usando el servicio
       const result = await AuthService.changePassword(
         user.user_id,
         passwordData.currentPassword,

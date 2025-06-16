@@ -12,7 +12,7 @@ const Navbar = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
-  // Función para obtener el saludo según la hora
+  // Saludo según la hora
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour >= 6 && hour < 12) return 'Buenos días';
@@ -20,7 +20,7 @@ const Navbar = () => {
     return 'Buenas noches';
   };
 
-  // Funciones para manejar los modales
+  // Funciones para Modals
   const switchToRegister = () => {
     setShowLoginModal(false);
     setShowRegisterModal(true);

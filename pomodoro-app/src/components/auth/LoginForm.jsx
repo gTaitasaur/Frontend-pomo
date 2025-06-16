@@ -43,7 +43,7 @@ const LoginForm = ({ onClose, onSwitchToRegister }) => {
 const fillDemoUser = () => {
   setFormData({
     username: 'usuario_demo',
-    password: 'demo123' // Contraseña real que debe coincidir con el hash
+    password: 'demo123'
   });
 };
 

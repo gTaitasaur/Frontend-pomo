@@ -1,6 +1,4 @@
-// Mock Database para Pomodoro App
 // Simula la base de datos PostgreSQL con datos de prueba
-
 // ENUMS
 const PROVIDER_ENUM = ['email', 'google', 'facebook'];
 const POMO_TYPE_ENUM = ['work', 'rest', 'long_rest'];
@@ -48,7 +46,7 @@ const mockDatabase = {
       user_id: 2,
       username: 'premium_user',
       email: 'premium@ejemplo.com',
-      password_hash: '$2b$10$' + btoa('premium123'), // Contraseña: premium123
+      password_hash: '$2b$10$' + btoa('premium123'),
       telefono: null,
       imagen_perfil: null,
       provider: 'google',
@@ -633,7 +631,7 @@ const mockDatabase = {
   ]
 };
 
-// FUNCIONES DE UTILIDAD PARA SIMULAR OPERACIONES DE BASE DE DATOS
+// FUNCIONES PARA SIMULAR OPERACIONES DE BASE DE DATOS
 
 class MockDatabase {
   // USUARIOS

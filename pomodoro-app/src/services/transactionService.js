@@ -2,10 +2,9 @@
 import { MockDatabase } from '../database/pomodoro_db_mock.js';
 
 class TransactionService {
-  // Crear transacción de Freemodoros ganados por Pomodoro
+  // Crea transacción de Freemodoros ganados por Pomodoro
   static async createPomodoroTransaction(userId, amount, pomodoroMinutes) {
     try {
-      // Simular delay de red
       await new Promise(resolve => setTimeout(resolve, 200));
   
       // Crear transacción
@@ -20,7 +19,6 @@ class TransactionService {
         related_id: Date.now() // Simulamos un ID único
       });
   
-      // CORRECCIÓN: Actualizar monedas PRIMERO
       await MockDatabase.updateUserCoins(userId, amount, 0);
   
       // Obtener usuario ACTUALIZADO después de la transacción
@@ -31,7 +29,7 @@ class TransactionService {
         data: {
           transaction,
           newBalance: {
-            free_coins: updatedUser.free_coins, // Usar valor actualizado
+            free_coins: updatedUser.free_coins,
             paid_coins: updatedUser.paid_coins
           }
         }

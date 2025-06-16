@@ -42,7 +42,6 @@ class AuthService {
   // Login con validación real de contraseña
   static async login(username, password) {
     try {
-      // Simular delay de red
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Buscar usuario por username o email
@@ -56,21 +55,21 @@ class AuthService {
         throw new Error('Usuario o contraseña incorrectos');
       }
 
-      // Verificar contraseña
+      // Verifica contraseña
       const isValidPassword = verifyPassword(password, user.password_hash);
       if (!isValidPassword) {
         throw new Error('Usuario o contraseña incorrectos');
       }
 
-      // Actualizar último login
+      // Actualiza último login
       await MockDatabase.updateUser(user.user_id, {
         last_login: new Date()
       });
 
-      // Crear token de sesión
+      // Crea token de sesión
       const token = generateToken(user.user_id);
       
-      // Crear refresh token
+      // Crea refresh token
       const refreshToken = `refresh_${Date.now()}_${user.user_id}`;
       await MockDatabase.createRefreshToken({
         token: refreshToken,
@@ -106,7 +105,6 @@ class AuthService {
   // Registro con hash de contraseña
   static async register(userData) {
     try {
-      // Simular delay de red
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Validaciones del lado del servidor
@@ -182,7 +180,6 @@ class AuthService {
   // Cambiar contraseña
   static async changePassword(userId, currentPassword, newPassword) {
     try {
-      // Simular delay de red
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Buscar usuario

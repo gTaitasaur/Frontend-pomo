@@ -51,13 +51,13 @@ const History = () => {
     }
   }, [user]);
 
-  // Calcular páginas
+  // Calcular paginación
   const totalPages = Math.ceil(history.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentHistory = history.slice(startIndex, endIndex);
 
-  // Función para obtener el nombre del tipo
+  // Función para obtener el nombre del modo
   const getTypeName = (type) => {
     switch (type) {
       case 'pomodoro':
@@ -71,7 +71,7 @@ const History = () => {
     }
   };
 
-  // Función para obtener el color del tipo
+  // Función para obtener el color del modo
   const getTypeColor = (type) => {
     switch (type) {
       case 'pomodoro':
@@ -85,7 +85,7 @@ const History = () => {
     }
   };
 
-  // Función para formatear la fecha
+  // Función para formatear fecha
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();

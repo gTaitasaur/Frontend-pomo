@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
         if (result.success) {
           setUser(result.data.user);
         } else {
-          // Token inválido, intentar refrescar
+          // Token inválido, intenta refrescar
           if (refreshToken) {
             const refreshResult = await AuthService.refreshToken(refreshToken);
             if (refreshResult.success) {
@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Función para hacer peticiones autenticadas (similar a axios con interceptor)
+  // Función para hacer peticiones autenticadas
   const authenticatedRequest = async (requestFunction) => {
     try {
       const result = await requestFunction(accessToken);

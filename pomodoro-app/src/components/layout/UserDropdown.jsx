@@ -32,7 +32,7 @@ const UserDropdown = ({ greeting }) => {
         onClick={toggleDropdown}
         className="flex items-center space-x-2 text-gray-700 hover:text-gray-900"
       >
-        {/* Aquí irá la imagen del usuario */}
+        {/* Imagen del usuario */}
         <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
         <span>{greeting} {user?.username}!</span>
       </button>
