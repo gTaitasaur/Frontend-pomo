@@ -130,7 +130,7 @@ const History = () => {
       <h1 className="text-3xl font-bold text-gray-800 mb-8">Historial de Pomos</h1>
 
       {/* Sección de tiempo total */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      {/*<div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Tiempo Total de Pomodoros</h2>
         <div className="text-center">
           <div className="text-5xl font-bold text-red-600 mb-2">
@@ -140,7 +140,7 @@ const History = () => {
             Has dedicado este tiempo a tus sesiones de pomodoro
           </p>
         </div>
-      </div>
+      </div>*/}
 
       {/* Sección de historial de 7 días */}
       <div className="bg-white rounded-lg shadow-md p-6">
